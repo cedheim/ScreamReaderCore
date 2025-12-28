@@ -70,7 +70,6 @@ public class ScreamOutput : IPcmOutput
         var result = _section.Enter(() =>
         {
             _audioOut?.Dispose();
-            _provider.Dispose();
         });
 
         if (!result.IsSuccess)

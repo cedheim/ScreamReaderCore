@@ -2,6 +2,7 @@
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using ScreamReaderCore.Audio;
 using ScreamReaderCore.Lib;
 using ScreamReaderCore.Networking;
 
@@ -15,7 +16,22 @@ Console.CancelKeyPress += (sender, e) =>
     Console.WriteLine("Exiting...");
 };
 
+var network = new NetworkProvider();
+using var audio = new AudioProvider();
 
+var output = new ScreamOutput(audio);
+var receiver = new ScreamReceiver(network);
+var player = new ScreamPlayer(receiver, output);
+
+var startTask = player.StartAsync(cts.Token);
+
+Console.WriteLine("Playing audio...");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
+
+cts.Cancel();
+
+await startTask;
 
 // new UdpWaveStreamPlayer().Start(cts.Token);
 // using var provider = new NetworkProvider();
@@ -46,26 +62,25 @@ Console.CancelKeyPress += (sender, e) =>
 //     }
 // }
 
-var deviceEnumerator = new MMDeviceEnumerator();
-var devices = deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+// var deviceEnumerator = new MMDeviceEnumerator();
+// var devices = deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+//
+// foreach (var device in devices)
+// {
+//     if (device.FriendlyName == "Headphones (WH-1000XM6)")
+//     {
+//         var properties = device.Properties;
+//         for (var i = 0; i < properties.Count; i++)
+//         {
+//             var key = properties.Get(i);
+//             var value = properties.GetValue(i);
+//             Console.WriteLine($"{key.propertyId}: {value.Value.ToString()}");
+//         }
+//     }
+//     
+//     Console.WriteLine($"Found device: {device.FriendlyName}, ID: {device.ID}");
+// }
 
-foreach (var device in devices)
-{
-    if (device.FriendlyName == "Headphones (WH-1000XM6)")
-    {
-        var properties = device.Properties;
-        for (var i = 0; i < properties.Count; i++)
-        {
-            var key = properties.Get(i);
-            var value = properties.GetValue(i);
-            Console.WriteLine($"{key.propertyId}: {value.Value.ToString()}");
-        }
-    }
-    
-    Console.WriteLine($"Found device: {device.FriendlyName}, ID: {device.ID}");
-}
-
-Console.WriteLine("Playing audio...");
 
 // await Task.Delay(-1, cts.Token);
 //
