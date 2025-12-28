@@ -121,7 +121,7 @@ public class UdpWaveStreamPlayer : IDisposable
 
             this.udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             this.udpClient.Client.Bind(localEp);
-            //this.udpClient.JoinMulticastGroup(this.multicastAddress);
+            this.udpClient.JoinMulticastGroup(this.multicastAddress);
 
             var rsws = new BufferedWaveProvider(new WaveFormat(44100, currentWidth, currentChannels)) { BufferDuration = TimeSpan.FromMilliseconds(200), DiscardOnBufferOverflow = true };
 
@@ -152,7 +152,7 @@ public class UdpWaveStreamPlayer : IDisposable
                     try
                     {
                         Byte[] data = this.udpClient.Receive(ref localEp);
-                        
+
                         if (data[0] != currentRate || data[1] != currentWidth || data[2] != currentChannels || data[3] != currentChannelsMapLsb || data[4] != currentChannelsMapMsb)
                         {
                             currentRate = data[0];
