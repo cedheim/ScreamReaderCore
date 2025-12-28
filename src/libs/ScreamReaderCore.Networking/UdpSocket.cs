@@ -26,7 +26,6 @@ internal class UdpSocket : INetworkSocket
         }
         
         this._section = new CriticalSection();
-        this._provider.Register(this);
     }
 
     public async Task<Result<byte[]>> ReceiveAsync(CancellationToken cancellationToken = default)
@@ -49,7 +48,6 @@ internal class UdpSocket : INetworkSocket
     {
         var result = _section.Enter(() =>
         {
-            _provider.Unregister(this);
             _udpClient?.Dispose();
         });
 

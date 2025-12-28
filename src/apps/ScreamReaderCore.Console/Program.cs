@@ -1,4 +1,7 @@
 // See https://aka.ms/new-console-template for more information
+
+using NAudio.CoreAudioApi;
+using NAudio.Wave;
 using ScreamReaderCore.Lib;
 using ScreamReaderCore.Networking;
 
@@ -12,20 +15,22 @@ Console.CancelKeyPress += (sender, e) =>
     Console.WriteLine("Exiting...");
 };
 
+
+
 // new UdpWaveStreamPlayer().Start(cts.Token);
-using var provider = new NetworkProvider();
-using var network = provider.Open(SocketType.Udp, 4010).Value;
-
-var thread = new Thread(ReceiveAMessage);
-thread.Start();
-
-await Task.Delay(TimeSpan.FromSeconds(5));
-
-cts.Cancel();
-
-await Task.Delay(TimeSpan.FromSeconds(1));
-
-Console.WriteLine("Exiting");
+// using var provider = new NetworkProvider();
+// using var network = provider.Open(SocketType.Udp, 4010).Value;
+//
+// var thread = new Thread(ReceiveAMessage);
+// thread.Start();
+//
+// await Task.Delay(TimeSpan.FromSeconds(5));
+//
+// cts.Cancel();
+//
+// await Task.Delay(TimeSpan.FromSeconds(1));
+//
+// Console.WriteLine("Exiting");
 
 // for (var i = 0; i < 10; i++)
 // {
@@ -41,7 +46,24 @@ Console.WriteLine("Exiting");
 //     }
 // }
 
+var deviceEnumerator = new MMDeviceEnumerator();
+var devices = deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
 
+foreach (var device in devices)
+{
+    if (device.FriendlyName == "Headphones (WH-1000XM6)")
+    {
+        var properties = device.Properties;
+        for (var i = 0; i < properties.Count; i++)
+        {
+            var key = properties.Get(i);
+            var value = properties.GetValue(i);
+            Console.WriteLine($"{key.propertyId}: {value.Value.ToString()}");
+        }
+    }
+    
+    Console.WriteLine($"Found device: {device.FriendlyName}, ID: {device.ID}");
+}
 
 Console.WriteLine("Playing audio...");
 
@@ -62,17 +84,17 @@ Console.WriteLine("Playing audio...");
 //     }
 // }
 
-void ReceiveAMessage()
-{
-    
-    var buffer = network.ReceiveAsync(cts.Token).GetAwaiter().GetResult();
-
-    if (buffer.IsSuccess)
-    {
-        Console.WriteLine("Received packet of length " + buffer.Value.Length);
-    }
-    else
-    {
-        Console.WriteLine("Did not receive packet" + buffer.Error);
-    }
-}
+// void ReceiveAMessage()
+// {
+//     
+//     var buffer = network.ReceiveAsync(cts.Token).GetAwaiter().GetResult();
+//
+//     if (buffer.IsSuccess)
+//     {
+//         Console.WriteLine("Received packet of length " + buffer.Value.Length);
+//     }
+//     else
+//     {
+//         Console.WriteLine("Did not receive packet" + buffer.Error);
+//     }
+// }

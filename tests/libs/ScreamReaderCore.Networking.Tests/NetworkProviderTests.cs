@@ -14,12 +14,6 @@ public class NetworkProviderTests
     {
         _sut = new NetworkProvider();
     }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _sut.Dispose();
-    }
     
     [Test]
     public async Task Should_receive_udp_data()
@@ -32,14 +26,6 @@ public class NetworkProviderTests
         
         receiveResult.IsSuccess.ShouldBeTrue();
         receiveResult.Value.ShouldBeEquivalentTo(Data.Message);
-    }
-    
-    [Test]
-    public void Should_check_that_all_sockets_are_closed_on_dispose()
-    {
-        using var socket = _sut.Open(SocketType.Udp, Data.Port).Value;
-        
-        Should.Throw<InvalidOperationException>(() => _sut.Dispose());
     }
 
     [Test]
@@ -62,7 +48,7 @@ public class NetworkProviderTests
     
     private static class Data
     {
-        public static IPAddress Localhost = new IPAddress(new byte[] { 127, 0, 0, 1 });
+        public static readonly IPAddress Localhost = new IPAddress(new byte[] { 127, 0, 0, 1 });
         public const int Port = 35686;
         public static readonly byte[] Message = [0x01, 0x02, 0x03, 0x04, 0x05];
     }

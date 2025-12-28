@@ -27,7 +27,6 @@ public class ScreamReceiverTests
     public void TearDown()
     {
         _socket?.Dispose();
-        _provider.Dispose();
         _sut.Dispose();
     }
 

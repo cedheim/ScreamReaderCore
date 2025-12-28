@@ -4,7 +4,7 @@ using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Networking;
 
-public interface INetworkProvider : IDisposable
+public interface INetworkProvider
 {
     Result<INetworkSocket> Open(SocketType type, int port, IPAddress? multicastAddress = null);
 }
