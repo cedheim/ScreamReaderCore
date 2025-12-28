@@ -6,7 +6,7 @@ namespace ScreamReaderCore.Audio;
 
 public interface IAudioOut : IDisposable
 {
-    Result Play(byte[] data, int offset, int count);
+    Result Play(IReadOnlyCollection<byte> data);
     int Volume { get; set; }
 }
 
@@ -42,9 +42,10 @@ internal class AudioOut : IAudioOut
         }
     }
 
-    public Result Play(byte[] data, int offset, int count)
+    public Result Play(IReadOnlyCollection<byte> data)
     {
-        return _lock.Enter(() => _waveProvider.AddSamples(data, offset, count));
+        var dataArray = data as byte[] ?? data.ToArray();
+        return _lock.Enter(() => _waveProvider.AddSamples(data.ToArray(), 0, data.Count));
     }
 
     public void Dispose()

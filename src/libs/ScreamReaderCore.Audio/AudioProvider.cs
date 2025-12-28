@@ -5,6 +5,7 @@ namespace ScreamReaderCore.Audio;
 public interface IAudioProvider : IDisposable
 {
     IEnumerable<AudioDevice> GetAudioOutputDevices();
+    AudioDevice GetDefaultAudioOutputDevice();
     IAudioOut OpenOutput(AudioDevice device, int currentRate, int currentWidth, int currentChannels);
 }
 
@@ -15,6 +16,16 @@ public class AudioProvider : IAudioProvider
     public AudioProvider()
     {
         _deviceEnumerator = new MMDeviceEnumerator();
+    }
+    
+    public AudioDevice GetDefaultAudioOutputDevice()
+    {
+        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        return new AudioDevice(
+            defaultDevice.ID,
+            defaultDevice.FriendlyName,
+            true
+        );
     }
     
     public IEnumerable<AudioDevice> GetAudioOutputDevices()

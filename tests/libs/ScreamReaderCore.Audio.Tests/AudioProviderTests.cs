@@ -27,6 +27,16 @@ public class AudioProviderTests
     }
     
     [Test]
+    public void Should_be_able_to_get_default_audio_device()
+    {
+        var defaultDevice = _sut.GetDefaultAudioOutputDevice();
+        var devices = _sut.GetAudioOutputDevices().ToList();
+        var foundDefault = devices.First(d => d.IsDefault);
+        
+        defaultDevice.ShouldBeEquivalentTo(foundDefault);
+    }
+    
+    [Test]
     public void Should_be_able_to_play_audio()
     {
         var devices = _sut.GetAudioOutputDevices().ToList();
@@ -34,7 +44,7 @@ public class AudioProviderTests
         
         using var audioOut = _sut.OpenOutput(device, 129, 16, 2);
 
-        Should.NotThrow(() => audioOut.Play(Enumerable.Repeat((byte)40, 2000).ToArray(), 0, 2000));
+        Should.NotThrow(() => audioOut.Play(Enumerable.Repeat((byte)40, 2000).ToArray()));
     }
     
     [Test]
