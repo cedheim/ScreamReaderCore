@@ -7,6 +7,7 @@
     <Project Path="src/libs/ScreamReaderCore.Contract/ScreamReaderCore.Contract.csproj" />
     <Project Path="src/libs/ScreamReaderCore.Lib/ScreamReaderCore.Lib.csproj" />
     <Project Path="src/libs/ScreamReaderCore.Networking/ScreamReaderCore.Networking.csproj" />
+    <Project Path="src/libs/ScreamReaderCore.Tools/ScreamReaderCore.Tools.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/libs/">

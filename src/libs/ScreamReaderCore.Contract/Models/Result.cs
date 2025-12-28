@@ -2,6 +2,16 @@
 
 public record Result
 {
+    private static readonly Result _success = new Result(true);
+    public static Result Success() => _success;
+    public static Result<TResult> Success<TResult>(TResult result) => new Result<TResult>(result);
+    public static Result Failure(Exception exception) => new Result(exception);
+    public static Result<TResult> Failure<TResult>(Exception exception) => new Result<TResult>(exception);
+    public static Result<TResult> Failure<TResult>(string? error) => new Result<TResult>(false, error);
+    public static Result Failure(string? error) => new Result(false, error);
+    
+    public Result(Exception exception) : this(false, exception.ToString()){}
+    
     public Result(bool isSuccess = true, string? error = null)
     {
         IsSuccess = isSuccess;
@@ -14,8 +24,8 @@ public record Result
 
 public record Result<TResult> : Result
 {
-    public Result(Exception error)
-        : base(false, error.ToString())
+    public Result(Exception exception)
+        : base(exception)
     {
         Value = default!;
     }

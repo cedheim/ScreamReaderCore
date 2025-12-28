@@ -1,14 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
 using ScreamReaderCore.Contract.Models;
+using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Networking;
 
 public class NetworkProvider : INetworkProvider
 {
-    private bool _disposed;
     private readonly HashSet<INetworkSocket> _sockets = new HashSet<INetworkSocket>();
-    private readonly Semaphore _lock = new Semaphore(1, 1);
+    private readonly CriticalSection _section = new CriticalSection();
     
     public Result<INetworkSocket> Open(SocketType type, int port, IPAddress? multicastAddress = null)
     {
@@ -21,41 +21,22 @@ public class NetworkProvider : INetworkProvider
 
     internal void Register(INetworkSocket socket)
     {
-        _lock.WaitOne();
-        _sockets.Add(socket);
-        _lock.Release();
+        _section.Enter(() => _sockets.Add(socket));
     }
 
     internal void Unregister(INetworkSocket socket)
     {
-        _lock.WaitOne();
-        _sockets.Remove(socket);
-        _lock.Release();
+        _section.Enter(() => _sockets.Remove(socket));
     }
 
     public void Dispose()
     {
-        Dispose(true);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposing || _disposed)
-        {
-            return;
-        }
-        
         var unregistered = _sockets.ToArray();
         if (unregistered.Length > 0)
         {
             throw new InvalidOperationException("Unable to dispose NetworkProvider while there are active sockets.");
         }
-
-        _lock.WaitOne();
-        _lock.Release();
-        _lock.Dispose();
         
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        _section.Dispose();
     }
 }

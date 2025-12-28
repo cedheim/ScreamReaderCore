@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
 using ScreamReaderCore.Contract;
 using ScreamReaderCore.Contract.Models;
 using ScreamReaderCore.Networking;
+using ScreamReaderCore.Tools;
 using SocketType = ScreamReaderCore.Networking.SocketType;
 
 namespace ScreamReaderCore.Lib;
@@ -14,69 +11,65 @@ public class ScreamReceiver : IPcmReceiver
     private readonly INetworkProvider _networkProvider;
     private bool _disposed;
     private INetworkSocket? _socket;
-    private readonly Semaphore _lock = new Semaphore(1, 1);
+    private readonly CriticalSection _section = new CriticalSection();
+    private readonly CancellationTokenSource _cancellationTokenSource;
 
     public ScreamReceiver(INetworkProvider networkProvider)
     {
         _networkProvider = networkProvider;
+        _cancellationTokenSource = new CancellationTokenSource();
     }
     
     public Result Open(PcmReceiverSettings settings)
     {
-        _lock.WaitOne();
-
-        if (_socket != null)
+        return _section.Enter(() =>
         {
-            _lock.Release();
-            return new Result(false, "ScreamReceiver is already open.");
-        }
-        
-        var socketResult = _networkProvider.Open(SocketType.Udp, settings.Port,
-            settings.MulticastEnabled ? settings.MulticastAddress : null);
+            if (_socket != null)
+            {
+                return Result.Failure("ScreamReceiver is already open.");
+            }
 
-        if (socketResult.IsSuccess)
-        {
-            _socket = socketResult.Value;
-        }
-        
-        _lock.Release();
+            var socketResult = _networkProvider.Open(SocketType.Udp, settings.Port,
+                settings.MulticastEnabled ? settings.MulticastAddress : null);
 
-        return socketResult;
+            if (socketResult.IsSuccess)
+            {
+                _socket = socketResult.Value;
+            }
+
+            return socketResult;
+        });
     }
 
     public Result Close()
     {
-        _lock.WaitOne();
-
-        if (_socket == null)
+        return _section.Enter(() =>
         {
-            _lock.Release();
-            return new Result(false, "ScreamReceiver is not open.");
-        }
-        
-        _socket.Dispose();
-        _socket = null;
-        _lock.Release();
+            if (_socket != null)
+            {
+                _socket.Dispose();
+                _socket = null;
+            }
 
-        return new Result();
+            return Result.Success();
+        });
     }
     
     public async Task<Result<PcmMessage>> ReceiveAsync(CancellationToken cancellationToken = default)
     {
-        _lock.WaitOne();
-
-        if (_socket == null)
+        var receiveResult = await _section.EnterAsync(async () =>
         {
-            _lock.Release();
-            return new Result<PcmMessage>(false, "ScreamReceiver is not open.");
-        }
-
-        var receiveResult = await _socket.ReceiveAsync(cancellationToken);
-        _lock.Release();
+            if (_socket == null)
+            {
+                return Result.Failure<byte[]>("ScreamReceiver is not open.");
+            }
+            
+            return await _socket.ReceiveAsync(cancellationToken);
+        }, cancellationToken: cancellationToken);
 
         if (!receiveResult.IsSuccess)
         {
-            return new Result<PcmMessage>(false, receiveResult.Error);
+            return Result.Failure<PcmMessage>(receiveResult.Error);
         }
 
         try
@@ -86,26 +79,18 @@ public class ScreamReceiver : IPcmReceiver
         }
         catch (Exception ex)
         {
-            return new Result<PcmMessage>(ex);
+            return Result.Failure<PcmMessage>(ex);
         }
     }
 
     public void Dispose()
     {
-        Dispose(true);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposing || _disposed)
+        var closeResult = Close();
+        if (!closeResult.IsSuccess)
         {
-            return;
+            throw new InvalidOperationException("Unable to close ScreamReceiver while disposing.");
         }
-
-        Close();
         
-        _lock.Dispose();
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        _section.Dispose();
     }
 }

@@ -1,15 +1,15 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using ScreamReaderCore.Contract.Models;
+using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Networking;
 
 internal class UdpSocket : INetworkSocket
 {
     private readonly NetworkProvider _provider;
-    private bool _disposed;
     private readonly UdpClient _udpClient;
-    private readonly Semaphore _lock;
+    private readonly CriticalSection _section;
 
     public UdpSocket(NetworkProvider provider, int port, IPAddress? multicastAddress = null)
     {
@@ -25,46 +25,34 @@ internal class UdpSocket : INetworkSocket
             _udpClient.JoinMulticastGroup(multicastAddress);
         }
         
-        this._lock = new Semaphore(1, 1);
+        this._section = new CriticalSection();
         this._provider.Register(this);
     }
 
     public async Task<Result<byte[]>> ReceiveAsync(CancellationToken cancellationToken = default)
     {
-        try
+        return await _section.EnterAsync(async () =>
         {
-            this._lock.WaitOne();
-            var result = await _udpClient.ReceiveAsync(cancellationToken);
-            return new Result<byte[]>(result.Buffer);
-        }
-        catch (Exception e)
-        {
-            return new Result<byte[]>(e);
-        }
-        finally{
-            this._lock.Release();
-        }
+            try
+            {
+                var result = await _udpClient.ReceiveAsync(cancellationToken);
+                return Result.Success(result.Buffer);
+            }
+            catch (Exception e)
+            {
+                return Result.Failure<byte[]>(e);
+            }
+        }, cancellationToken: cancellationToken);
     }
 
     public void Dispose()
     {
-        Dispose(true);
-    }
-    
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposing || _disposed)
+        _section.Enter(() =>
         {
-            return;
-        }
-
-        _lock.WaitOne();
-        _provider.Unregister(this);
-        _udpClient?.Dispose();
-        _lock.Release();
-        _lock.Dispose();
+            _provider.Unregister(this);
+            _udpClient?.Dispose();
+        });
         
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        _section.Dispose();
     }
 }

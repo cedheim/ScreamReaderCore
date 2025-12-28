@@ -1,17 +1,10 @@
 namespace ScreamReaderCore.Contract.Models;
 
-public sealed record PcmMessage
+public sealed record PcmMessage(byte[] RawData)
 {
-    public PcmMessage(byte[] data)
-    {
-        RawData = data ?? throw new ArgumentNullException(nameof(data));
-        Header = new PcmHeader(data);
-        Data = new ArraySegment<byte>(data, PcmHeader.HeaderSize, data.Length - PcmHeader.HeaderSize);
-    }
+    public byte[] RawData { get; } = RawData ?? throw new ArgumentNullException(nameof(RawData));
 
-    public byte[] RawData { get; }
+    public ArraySegment<byte> Data { get;} = new(RawData, PcmHeader.HeaderSize, RawData.Length - PcmHeader.HeaderSize);
 
-    public ArraySegment<byte> Data { get;}
-
-    public PcmHeader Header { get; }
+    public PcmHeader Header { get; } = new(RawData);
 }

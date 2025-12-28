@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ScreamReaderCore.Contract\ScreamReaderCore.Contract.csproj" />
-      <ProjectReference Include="..\ScreamReaderCore.Tools\ScreamReaderCore.Tools.csproj" />
     </ItemGroup>
 
 </Project>
