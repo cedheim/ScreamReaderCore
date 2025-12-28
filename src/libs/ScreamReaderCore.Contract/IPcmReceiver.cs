@@ -1,4 +1,5 @@
 ﻿using ScreamReaderCore.Contract.Models;
+using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Contract;
 

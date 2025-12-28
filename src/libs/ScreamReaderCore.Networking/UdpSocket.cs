@@ -47,11 +47,16 @@ internal class UdpSocket : INetworkSocket
 
     public void Dispose()
     {
-        _section.Enter(() =>
+        var result = _section.Enter(() =>
         {
             _provider.Unregister(this);
             _udpClient?.Dispose();
         });
+
+        if (!result.IsSuccess)
+        {
+            throw new InvalidOperationException($"Failed to dispose UdpSocket with message: {result.Error}");
+        }
         
         _section.Dispose();
     }

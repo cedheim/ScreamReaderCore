@@ -14,5 +14,6 @@
     <Project Path="tests/libs/ScreamReaderCore.Contract.Tests/ScreamReaderCore.Contract.Tests.csproj" />
     <Project Path="tests/libs/ScreamReaderCore.Lib.Tests/ScreamReaderCore.Lib.Tests.csproj" Id="78357b51-ed0e-4d2a-b838-82bdaec7a100" />
     <Project Path="tests/libs/ScreamReaderCore.Networking.Tests/ScreamReaderCore.Networking.Tests.csproj" />
+    <Project Path="tests/libs/ScreamReaderCore.Tools.Tests/ScreamReaderCore.Tools.Tests.csproj" />
   </Folder>
 </Solution>

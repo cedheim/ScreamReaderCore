@@ -6,4 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\ScreamReaderCore.Tools\ScreamReaderCore.Tools.csproj" />
+    </ItemGroup>
+
 </Project>

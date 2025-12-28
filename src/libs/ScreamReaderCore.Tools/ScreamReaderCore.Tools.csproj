@@ -6,8 +6,4 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\ScreamReaderCore.Contract\ScreamReaderCore.Contract.csproj" />
-    </ItemGroup>
-
 </Project>

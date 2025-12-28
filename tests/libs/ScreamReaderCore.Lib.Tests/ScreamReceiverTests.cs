@@ -2,6 +2,7 @@
 using ScreamReaderCore.Networking;
 using ScreamReaderCore.Contract.Models;
 using System.Net;
+using ScreamReaderCore.Tools;
 using Shouldly;
 
 namespace ScreamReaderCore.Lib.Tests;
@@ -34,7 +35,7 @@ public class ScreamReceiverTests
     public void Should_open_when_not_open_returns_success_and_opens_socket()
     {
         A.CallTo(() => _provider.Open(SocketType.Udp, _settings.Port, null))
-            .Returns(new Result<INetworkSocket>(_socket));
+            .Returns(Result.Success(_socket));
 
         var result = _sut.Open(_settings);
 
@@ -45,7 +46,7 @@ public class ScreamReceiverTests
     public void Should_open_when_already_open_returns_error()
     {
         A.CallTo(() => _provider.Open(SocketType.Udp, _settings.Port, null))
-            .Returns(new Result<INetworkSocket>(_socket));
+            .Returns(Result.Success(_socket));
         _sut.Open(_settings);
         var result = _sut.Open(_settings);
         result.IsSuccess.ShouldBeFalse();
@@ -63,7 +64,7 @@ public class ScreamReceiverTests
     public void Should_close_when_open_disposes_socket_and_returns_success()
     {
         A.CallTo(() => _provider.Open(SocketType.Udp, _settings.Port, null))
-            .Returns(new Result<INetworkSocket>(_socket));
+            .Returns(Result.Success(_socket));
         _sut.Open(_settings);
         var result = _sut.Close();
         result.IsSuccess.ShouldBeTrue();
@@ -82,10 +83,10 @@ public class ScreamReceiverTests
     public async Task Should_receive_async_when_socket_returns_error_returns_error()
     {
         A.CallTo(() => _provider.Open(SocketType.Udp, _settings.Port, null))
-            .Returns(new Result<INetworkSocket>(_socket));
+            .Returns(Result.Success(_socket));
         _sut.Open(_settings);
         A.CallTo(() => _socket.ReceiveAsync(A<CancellationToken>._))
-            .Returns(new Result<byte[]>(false, "fail"));
+            .Returns(Result.Failure<byte[]>("fail"));
         var result = await _sut.ReceiveAsync();
         result.IsSuccess.ShouldBeFalse();
         result.Error!.ShouldContain("fail");
@@ -95,11 +96,11 @@ public class ScreamReceiverTests
     public async Task Should_receive_async_when_socket_returns_data_returns_pcm_message()
     {
         A.CallTo(() => _provider.Open(SocketType.Udp, _settings.Port, null))
-            .Returns(new Result<INetworkSocket>(_socket));
+            .Returns(Result.Success(_socket));
         _sut.Open(_settings);
         var data = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
         A.CallTo(() => _socket.ReceiveAsync(A<CancellationToken>._))
-            .Returns(new Result<byte[]>(data));
+            .Returns(Result.Success(data));
         var result = await _sut.ReceiveAsync();
         result.IsSuccess.ShouldBeTrue();
         result.Value.ShouldNotBeNull();

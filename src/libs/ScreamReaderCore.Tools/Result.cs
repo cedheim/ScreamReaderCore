@@ -1,4 +1,4 @@
-﻿namespace ScreamReaderCore.Contract.Models;
+﻿namespace ScreamReaderCore.Tools;
 
 public record Result
 {
@@ -10,9 +10,9 @@ public record Result
     public static Result<TResult> Failure<TResult>(string? error) => new Result<TResult>(false, error);
     public static Result Failure(string? error) => new Result(false, error);
     
-    public Result(Exception exception) : this(false, exception.ToString()){}
+    internal Result(Exception exception) : this(false, exception.ToString()){}
     
-    public Result(bool isSuccess = true, string? error = null)
+    internal Result(bool isSuccess = true, string? error = null)
     {
         IsSuccess = isSuccess;
         Error = error;
@@ -24,19 +24,19 @@ public record Result
 
 public record Result<TResult> : Result
 {
-    public Result(Exception exception)
+    internal Result(Exception exception)
         : base(exception)
     {
         Value = default!;
     }
 
-    public Result(bool isSuccess, string? error = null)
+    internal Result(bool isSuccess, string? error = null)
         : base(isSuccess, error)
     {
         Value = default!;
     }
 
-    public Result(TResult result) 
+    internal Result(TResult result) 
         : base(true)
     {
         Value = result;

@@ -1,6 +1,4 @@
-﻿using ScreamReaderCore.Contract.Models;
-
-namespace ScreamReaderCore.Tools;
+﻿namespace ScreamReaderCore.Tools;
 
 public sealed class CriticalSection : IDisposable
 {
