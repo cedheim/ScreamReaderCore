@@ -4,10 +4,14 @@
     <Project Path="src/apps/ScreamReaderCore.Console/ScreamReaderCore.Console.csproj" Id="3e93e417-c027-41dc-9c60-79f86a664af3" />
   </Folder>
   <Folder Name="/src/libs/">
+    <Project Path="src/libs/ScreamReaderCore.Contract/ScreamReaderCore.Contract.csproj" />
     <Project Path="src/libs/ScreamReaderCore.Lib/ScreamReaderCore.Lib.csproj" />
+    <Project Path="src/libs/ScreamReaderCore.Networking/ScreamReaderCore.Networking.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/libs/">
+    <Project Path="tests/libs/ScreamReaderCore.Contract.Tests/ScreamReaderCore.Contract.Tests.csproj" />
     <Project Path="tests/libs/ScreamReaderCore.Lib.Tests/ScreamReaderCore.Lib.Tests.csproj" Id="78357b51-ed0e-4d2a-b838-82bdaec7a100" />
+    <Project Path="tests/libs/ScreamReaderCore.Networking.Tests/ScreamReaderCore.Networking.Tests.csproj" />
   </Folder>
 </Solution>

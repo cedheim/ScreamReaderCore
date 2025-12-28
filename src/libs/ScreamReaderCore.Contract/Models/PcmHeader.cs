@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+namespace ScreamReaderCore.Contract.Models;
 
-namespace ScreamReaderCore.Lib.Models;
-
-public sealed record ScreamHeader
+public sealed record PcmHeader
 {
     public const int HeaderSize = 5;
 
-    public ScreamHeader(byte[] data)
+    public PcmHeader(byte[] data)
     {
         if (data.Length < HeaderSize)
         {

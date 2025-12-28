@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using ScreamReaderCore.Lib.Models;
+using ScreamReaderCore.Contract.Models;
 using Shouldly;
 
-namespace ScreamReaderCore.Lib.Tests.Models;
+namespace ScreamReaderCore.Contract.Tests.Models;
 
 [TestFixture]
-public class ScreamMessageTests
+public class PcmMessageTests
 {
     [Test]
     public void Should_be_able_to_create_scream_message_from_valid_data()
@@ -15,7 +12,7 @@ public class ScreamMessageTests
         // Arrange
         var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
         // Act
-        var message = new ScreamMessage(data);
+        var message = new PcmMessage(data);
         // Assert
         message.RawData.ShouldBeEquivalentTo(data);
         message.Header.CurrentRate.ShouldBe(1); 
@@ -31,7 +28,7 @@ public class ScreamMessageTests
     {
         byte[]? data = null!;
 
-        Should.Throw<ArgumentNullException>(() => new ScreamMessage(data));
+        Should.Throw<ArgumentNullException>(() => new PcmMessage(data));
     }
 
     [Test]
@@ -40,7 +37,7 @@ public class ScreamMessageTests
         // Arrange
         var data = new byte[] { 1, 2, 3, 4 }; // Less than 5 bytes
         // Act & Assert
-        Should.Throw<ArgumentException>(() => new ScreamHeader(data));
+        Should.Throw<ArgumentException>(() => new PcmHeader(data));
     }
 
     [Test]
@@ -50,9 +47,9 @@ public class ScreamMessageTests
         var data1 = new byte[] { 1, 2, 3, 4, 5 };
         var data2 = new byte[] { 1, 2, 3, 4, 5 };
         var data3 = new byte[] { 6, 7, 8, 9, 10 };
-        var header1 = new ScreamHeader(data1);
-        var header2 = new ScreamHeader(data2);
-        var header3 = new ScreamHeader(data3);
+        var header1 = new PcmHeader(data1);
+        var header2 = new PcmHeader(data2);
+        var header3 = new PcmHeader(data3);
         // Act & Assert
         header1.Equals(header2).ShouldBeTrue();
         header1.Equals(header3).ShouldBeFalse();
