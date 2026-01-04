@@ -96,6 +96,8 @@ public class AudioProviderTests
             defaultDevice = newDefaultDevice;
         };
         
+        
+        
         A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
             .ReturnsNextFromSequence(Data.DefaultAudioDevice, Data.AnotherDefaultAudioDevice);
         
