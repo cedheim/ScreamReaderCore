@@ -14,10 +14,14 @@ public interface IScreamPlayer : IDisposable
     void Stop();
 }
 
+/// <summary>
+/// Implements a Scream PCM audio player.
+/// </summary>
 public class ScreamPlayer : IScreamPlayer
 {
     private readonly IPcmReceiver _receiver;
     private readonly IPcmOutput _output;
+    private readonly CriticalSection _section;
     
     
     private PcmReceiverSettings _settings;
@@ -29,6 +33,7 @@ public class ScreamPlayer : IScreamPlayer
         _settings = settings;
         _receiver = receiver;
         _output = output;
+        _section = new CriticalSection();
     }
 
     public AudioDevice? Device
@@ -77,6 +82,8 @@ public class ScreamPlayer : IScreamPlayer
         {
             Stop();
         }
+        
+        _cancellationTokenSource?.Dispose();
     }
 
     private async Task StopAsync()
@@ -88,6 +95,10 @@ public class ScreamPlayer : IScreamPlayer
         
         await _cancellationTokenSource.CancelAsync();
         await _playTask;
+
+        _playTask = null;
+        _cancellationTokenSource.Dispose();
+        _cancellationTokenSource = null;
     }
 
     private async Task<Result> PlayAsync(CancellationToken cancellationToken)

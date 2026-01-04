@@ -5,6 +5,9 @@ using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Lib;
 
+/// <summary>
+/// Implements PCM audio output using the ScreamReaderCore audio provider.
+/// </summary>
 public class ScreamOutput : IPcmOutput
 {
     private readonly IAudioProvider _provider;
@@ -14,12 +17,19 @@ public class ScreamOutput : IPcmOutput
     private PcmHeader? _pcmHeader;
     private IAudioOut? _audioOut;
 
+    /// <summary>
+    /// Creates a new ScreamOutput instance.
+    /// </summary>
+    /// <param name="provider"></param>
     public ScreamOutput(IAudioProvider provider)
     {
         _provider = provider;
         _audioDevice = _provider.GetDefaultAudioOutputDevice();
     }
 
+    /// <summary>
+    /// The audio device used for output.
+    /// </summary>
     public AudioDevice? Device
     {
         get
@@ -34,7 +44,11 @@ public class ScreamOutput : IPcmOutput
         }
     }
     
-    
+    /// <summary>
+    /// Plays a PCM message.
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
     public Result Play(PcmMessage message)
     {
         return _section.Enter(() =>
@@ -49,6 +63,9 @@ public class ScreamOutput : IPcmOutput
         });
     }
     
+    /// <summary>
+    /// Ensures that the audio output is initialized.
+    /// </summary>
     private void EnsureAudioOutInitialized()
     {
         if (_pcmHeader == null || _audioDevice == null)
@@ -65,6 +82,10 @@ public class ScreamOutput : IPcmOutput
         );
     }
     
+    /// <summary>
+    /// Disposes the ScreamOutput instance.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
     public void Dispose()
     {
         var result = _section.Enter(() =>

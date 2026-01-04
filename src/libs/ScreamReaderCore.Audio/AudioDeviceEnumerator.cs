@@ -11,6 +11,10 @@ public interface IAudioDeviceEnumerator : IDisposable
     AudioDevice? GetDevice(string id);
 }
 
+/// <summary>
+/// Used for enumerating audio devices.
+/// Wrapper for MMDeviceEnumerator from NAudio.
+/// </summary>
 [ExcludeFromCodeCoverage]
 public class AudioDeviceEnumerator : IAudioDeviceEnumerator
 {
@@ -21,6 +25,10 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
         _deviceEnumerator = new MMDeviceEnumerator();
     }
     
+    /// <summary>
+    /// Gets the default audio endpoint.
+    /// </summary>
+    /// <returns>The default audio device, null if none exists.</returns>
     public AudioDevice? GetDefaultAudioEndpoint()
     {
         var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
@@ -36,6 +44,10 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
         );
     }
     
+    /// <summary>
+    /// Enumerates audio endpoints.
+    /// </summary>
+    /// <returns>Enumeration of audio devices.</returns>
     public IEnumerable<AudioDevice> EnumerateAudioEndPoints()
     {
         var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
@@ -51,11 +63,20 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
         }
     }
 
+    /// <summary>
+    /// Indicates whether a default audio endpoint exists.
+    /// </summary>
+    /// <returns>True if default audio endpoint exists</returns>
     public bool HasDefaultAudioEndpoint()
     {
         return _deviceEnumerator.HasDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
     }
 
+    /// <summary>
+    /// Get audio device by id.
+    /// </summary>
+    /// <param name="id">Id device</param>
+    /// <returns>The audio device, null if not found</returns>
     public AudioDevice? GetDevice(string id)
     {
         try
@@ -75,6 +96,9 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
         return null;
     }
 
+    /// <summary>
+    /// Dispose the enumerator.
+    /// </summary>
     public void Dispose()
     {
         _deviceEnumerator.Dispose();

@@ -6,17 +6,29 @@ using SocketType = ScreamReaderCore.Networking.SocketType;
 
 namespace ScreamReaderCore.Lib;
 
+/// <summary>
+/// Implements a PCM audio receiver using the ScreamReaderCore networking provider.
+/// </summary>
 public class ScreamReceiver : IPcmReceiver
 {
     private readonly INetworkProvider _networkProvider;
     private INetworkSocket? _socket;
     private readonly CriticalSection _section = new();
 
+    /// <summary>
+    /// Creates a new ScreamReceiver instance.
+    /// </summary>
+    /// <param name="networkProvider"></param>
     public ScreamReceiver(INetworkProvider networkProvider)
     {
         _networkProvider = networkProvider;
     }
     
+    /// <summary>
+    /// Opens the receiver with the specified settings.
+    /// </summary>
+    /// <param name="settings"></param>
+    /// <returns></returns>
     public Result Open(PcmReceiverSettings settings)
     {
         return _section.Enter(() =>
@@ -38,6 +50,10 @@ public class ScreamReceiver : IPcmReceiver
         });
     }
 
+    /// <summary>
+    /// Closes the receiver.
+    /// </summary>
+    /// <returns></returns>
     public Result Close()
     {
         return _section.Enter(() =>
@@ -52,6 +68,11 @@ public class ScreamReceiver : IPcmReceiver
         });
     }
     
+    /// <summary>
+    /// Receives a PCM message asynchronously.
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     public async Task<Result<PcmMessage>> ReceiveAsync(CancellationToken cancellationToken = default)
     {
         var receiveResult = await _section.EnterAsync(async () =>
@@ -80,6 +101,10 @@ public class ScreamReceiver : IPcmReceiver
         }
     }
 
+    /// <summary>
+    /// Disposes the ScreamReceiver instance.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
     public void Dispose()
     {
         var closeResult = Close();
