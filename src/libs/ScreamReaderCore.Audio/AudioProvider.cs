@@ -3,6 +3,9 @@ using NAudio.CoreAudioApi.Interfaces;
 
 namespace ScreamReaderCore.Audio;
 
+/// <summary>
+/// Provides an interface for audio device management and output creation.
+/// </summary>
 public interface IAudioProvider : IDisposable
 {
     IEnumerable<AudioDevice> GetAudioOutputDevices();

@@ -4,6 +4,9 @@ using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Audio;
 
+/// <summary>
+/// Provides an interface for audio output functionality.
+/// </summary>
 public interface IAudioOut : IDisposable
 {
     Result Play(IReadOnlyCollection<byte> data);

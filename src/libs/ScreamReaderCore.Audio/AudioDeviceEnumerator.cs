@@ -3,6 +3,9 @@ using NAudio.CoreAudioApi;
 
 namespace ScreamReaderCore.Audio;
 
+/// <summary>
+/// Provides an interface for enumerating and retrieving audio devices.
+/// </summary>
 public interface IAudioDeviceEnumerator : IDisposable
 {
     AudioDevice? GetDefaultAudioEndpoint();

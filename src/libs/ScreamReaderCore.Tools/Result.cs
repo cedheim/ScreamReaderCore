@@ -1,5 +1,8 @@
 ﻿namespace ScreamReaderCore.Tools;
 
+/// <summary>
+/// Represents the result of an operation, indicating success or failure and an optional error message.
+/// </summary>
 public record Result
 {
     private static readonly Result _success = new Result(true);
@@ -22,6 +25,9 @@ public record Result
     public bool IsSuccess { get; }
 }
 
+/// <summary>
+/// Represents the result of an operation with a value of type TResult.
+/// </summary>
 public record Result<TResult> : Result
 {
     internal Result(Exception exception)
