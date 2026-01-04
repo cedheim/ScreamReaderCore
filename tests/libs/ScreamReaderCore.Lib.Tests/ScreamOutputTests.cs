@@ -36,7 +36,6 @@ public class ScreamOutputTests
     [TearDown]
     public void TearDown()
     {
-        _provider.Dispose();
         _audioOut.Dispose();
         _sut.Dispose();
     }

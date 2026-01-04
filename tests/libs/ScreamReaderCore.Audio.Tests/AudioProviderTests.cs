@@ -26,7 +26,6 @@ public class AudioProviderTests
     [TearDown]
     public void TearDown()
     {
-        _sut.Dispose();
         _deviceEnumerator.Dispose();
     }
 
