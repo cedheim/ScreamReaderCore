@@ -15,55 +15,29 @@ public delegate void OnDefaultAudioDeviceChangedHandler(AudioDevice newDefaultDe
 
 public class AudioProvider : IAudioProvider
 {
-    private readonly MMDeviceEnumerator _deviceEnumerator;
+    private readonly IAudioDeviceEnumerator _deviceEnumerator;
     private readonly Thread _monitorThread;
     private readonly CancellationTokenSource _cancellationTokenSource;
 
-    public AudioProvider()
+    public AudioProvider(IAudioDeviceEnumerator deviceEnumerator)
     {
-        _deviceEnumerator = new MMDeviceEnumerator();
+        _deviceEnumerator = deviceEnumerator;
         _cancellationTokenSource = new CancellationTokenSource();
         _monitorThread = new Thread(() => MonitorDefaultDeviceChanges(_cancellationTokenSource.Token).Wait());
         _monitorThread.Start();
     }
+
+    public TimeSpan DeviceChangeMonitorInterval { get; set; } = TimeSpan.FromMilliseconds(100);
     
-    public AudioDevice? GetDefaultAudioOutputDevice()
-    {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        if (defaultDevice == null)
-        {
-            return null;
-        }
-        
-        return new AudioDevice(
-            defaultDevice.ID,
-            defaultDevice.FriendlyName,
-            true
-        );
-    }
+    public AudioDevice? GetDefaultAudioOutputDevice() => _deviceEnumerator.GetDefaultAudioEndpoint();
     
     public event OnDefaultAudioDeviceChangedHandler? OnDefaultDeviceChanged;
-    
-    public IEnumerable<AudioDevice> GetAudioOutputDevices()
-    {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        var devices = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
 
-        foreach (var device in devices)
-        {
-            yield return new AudioDevice(
-                device.ID,
-                device.FriendlyName,
-                device.ID == defaultDevice.ID
-            );
-        }
-    }
+    public IEnumerable<AudioDevice> GetAudioOutputDevices() => _deviceEnumerator.EnumerateAudioEndPoints();
 
     public IAudioOut OpenOutput(AudioDevice device, int currentRate, int currentWidth, int currentChannels)
     {
-        var mmDevice = _deviceEnumerator.GetDevice(device.Id);
-        
-        return new AudioOut(mmDevice, currentRate, currentWidth, currentChannels);
+        return new AudioOut(device, currentRate, currentWidth, currentChannels);
     }
 
     public void Dispose()
@@ -73,9 +47,6 @@ public class AudioProvider : IAudioProvider
         {
             Thread.Sleep(10);
         }
-        
-        _deviceEnumerator.Dispose();
-        
     }
 
     /// <summary>
@@ -85,22 +56,22 @@ public class AudioProvider : IAudioProvider
     /// <param name="token">Cancellation token</param>
     private async Task MonitorDefaultDeviceChanges(CancellationToken token)
     {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
         try
         {
 
             while (!token.IsCancellationRequested)
             {
-                await Task.Delay(100, token);
-                var currentDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                await Task.Delay(DeviceChangeMonitorInterval, token);
+                var currentDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
 
-                if (currentDevice.ID == defaultDevice.ID)
+                if (currentDevice == null || (defaultDevice != null && currentDevice.Id == defaultDevice.Id))
                 {
                     continue;
                 }
 
-                OnDefaultDeviceChanged?.Invoke(new AudioDevice(currentDevice.ID, currentDevice.FriendlyName, true));
                 defaultDevice = currentDevice;
+                OnDefaultDeviceChanged?.Invoke(defaultDevice);
             }
         }
         catch (OperationCanceledException)

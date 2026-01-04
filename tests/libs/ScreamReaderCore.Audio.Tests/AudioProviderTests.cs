@@ -1,21 +1,33 @@
-﻿using Shouldly;
+﻿using FakeItEasy;
+using NAudio.CoreAudioApi;
+using Shouldly;
 
 namespace ScreamReaderCore.Audio.Tests;
 
 public class AudioProviderTests
 {
     private AudioProvider _sut = null!;
+    private IAudioDeviceEnumerator _deviceEnumerator;
 
     [SetUp]
     public void SetUp()
     {
-        _sut = new AudioProvider();
+        _deviceEnumerator = A.Fake<IAudioDeviceEnumerator>();
+        _sut = new AudioProvider(_deviceEnumerator);
+        
+        A.CallTo(() => _deviceEnumerator.EnumerateAudioEndPoints())
+            .Returns([Data.SecondaryAudioDevice, Data.DefaultAudioDevice]);
+        A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
+            .Returns(Data.DefaultAudioDevice);
+        A.CallTo(() => _deviceEnumerator.HasDefaultAudioEndpoint())
+            .Returns(true);
     }
     
     [TearDown]
     public void TearDown()
     {
         _sut.Dispose();
+        _deviceEnumerator.Dispose();
     }
 
     [Test]
@@ -39,8 +51,7 @@ public class AudioProviderTests
     [Test]
     public void Should_be_able_to_play_audio()
     {
-        var devices = _sut.GetAudioOutputDevices().ToList();
-        var device = devices.First(d => d.IsDefault);
+        var device = GetDefaultAudioOutputDevice();
         
         using var audioOut = _sut.OpenOutput(device, 129, 16, 2);
 
@@ -50,8 +61,7 @@ public class AudioProviderTests
     [Test]
     public void Should_be_able_to_set_volume()
     {
-        var devices = _sut.GetAudioOutputDevices().ToList();
-        var device = devices.First(d => d.IsDefault);
+        var device = GetDefaultAudioOutputDevice();
         
         using var audioOut = _sut.OpenOutput(device, 129, 16, 2);
 
@@ -73,5 +83,44 @@ public class AudioProviderTests
         audioOut.Volume.ShouldBe(1.0f, tolerance: 0.1);
         
         audioOut.Volume = startVolume;
+    }
+    
+    [Test]
+    public async Task Should_monitor_default_device_changes()
+    {
+        AudioDevice? defaultDevice = null;
+        var defaultDeviceChanges = 0;
+        _sut.OnDefaultDeviceChanged += (newDefaultDevice) =>
+        {
+            defaultDeviceChanges++;
+            defaultDevice = newDefaultDevice;
+        };
+        
+        A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
+            .ReturnsNextFromSequence(Data.DefaultAudioDevice, Data.AnotherDefaultAudioDevice);
+        
+        // Wait up to 5 seconds for the change to be detected
+        var timeout = DateTime.UtcNow.AddSeconds(5);
+        while (defaultDeviceChanges == 0 && DateTime.UtcNow < timeout)
+        {
+            await Task.Delay(100);
+        }
+        
+        defaultDeviceChanges.ShouldBe(1);
+        defaultDevice.ShouldBe(Data.AnotherDefaultAudioDevice);
+    }
+
+    private AudioDevice GetDefaultAudioOutputDevice()
+    {
+        using var deviceEnumerator = new MMDeviceEnumerator();
+        var mmDevice = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        return new AudioDevice(mmDevice.ID, mmDevice.FriendlyName, true);
+    }
+
+    private static class Data
+    {
+        public static readonly AudioDevice DefaultAudioDevice = new AudioDevice(Guid.NewGuid().ToString(), "Default Audio Device", true); 
+        public static readonly AudioDevice SecondaryAudioDevice = new AudioDevice(Guid.NewGuid().ToString(), "Secondary Audio Device", false);
+        public static readonly AudioDevice AnotherDefaultAudioDevice = new AudioDevice(Guid.NewGuid().ToString(), "Another Default Audio Device", true);
     }
 }

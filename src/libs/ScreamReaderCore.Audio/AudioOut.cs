@@ -16,14 +16,18 @@ internal class AudioOut : IAudioOut
     private readonly WasapiOut _output;
     private readonly CriticalSection _lock = new CriticalSection();
 
-    public AudioOut(MMDevice device, int currentRate, int currentWidth, int currentChannels)
+    public AudioOut(AudioDevice device, int currentRate, int currentWidth, int currentChannels)
     {
         var rate = ((currentRate >= 128) ? 44100 : 48000) * (currentRate % 128);
+        using var deviceEnumerator = new MMDeviceEnumerator();
+        
+        var mmDevice = deviceEnumerator.GetDevice(device.Id);
+        
         _waveProvider = new BufferedWaveProvider(new WaveFormat(rate, currentWidth, currentChannels))
         {
             BufferDuration = TimeSpan.FromMilliseconds(200), DiscardOnBufferOverflow = true
         };
-        _output = new WasapiOut(device, AudioClientShareMode.Shared, true, 200);
+        _output = new WasapiOut(mmDevice, AudioClientShareMode.Shared, true, 200);
         _output.Init(_waveProvider);
         _output.Play();
     }

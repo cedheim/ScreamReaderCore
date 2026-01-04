@@ -1,12 +1,20 @@
-﻿using System.Net;
-using ScreamReaderCore.Audio;
+﻿using ScreamReaderCore.Audio;
 using ScreamReaderCore.Contract;
 using ScreamReaderCore.Contract.Models;
 using ScreamReaderCore.Tools;
 
 namespace ScreamReaderCore.Lib;
 
-public class ScreamPlayer : IDisposable
+public interface IScreamPlayer : IDisposable
+{
+    AudioDevice? Device { get; set; }
+    bool IsPlaying { get; }
+    PcmReceiverSettings Settings { get; set; }
+    void Start();
+    void Stop();
+}
+
+public class ScreamPlayer : IScreamPlayer
 {
     private readonly IPcmReceiver _receiver;
     private readonly IPcmOutput _output;

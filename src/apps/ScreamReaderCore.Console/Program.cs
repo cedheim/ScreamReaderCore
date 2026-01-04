@@ -7,7 +7,8 @@ using ScreamReaderCore.Lib;
 using ScreamReaderCore.Networking;
 
 var network = new NetworkProvider();
-using var audio = new AudioProvider();
+using var deviceEnumerator = new AudioDeviceEnumerator();
+using var audio = new AudioProvider(deviceEnumerator);
 
 var settings = new PcmReceiverSettings(4010, new IPAddress([239, 255, 77, 77]), false);
 using var output = new ScreamOutput(audio);
