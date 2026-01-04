@@ -7,7 +7,7 @@ namespace ScreamReaderCore.Audio;
 public interface IAudioOut : IDisposable
 {
     Result Play(IReadOnlyCollection<byte> data);
-    int Volume { get; set; }
+    float Volume { get; set; }
 }
 
 internal class AudioOut : IAudioOut
@@ -28,17 +28,17 @@ internal class AudioOut : IAudioOut
         _output.Play();
     }
 
-    public int Volume
+    public float Volume
     {
-        get => (int)Math.Round(_output.Volume * 100);
+        get => _output.Volume;
         set
         {
-            if (value is < 0 or > 100)
+            if (value is < 0.0f or > 1.0f)
             {
                 return;
             }
 
-            _output.Volume = (float)value / 100f;
+            _output.Volume = value;
         }
     }
 

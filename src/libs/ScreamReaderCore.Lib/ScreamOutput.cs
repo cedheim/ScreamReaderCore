@@ -10,7 +10,7 @@ public class ScreamOutput : IPcmOutput
     private readonly IAudioProvider _provider;
     private readonly CriticalSection _section = new();
     
-    private AudioDevice _audioDevice;
+    private AudioDevice? _audioDevice;
     private PcmHeader? _pcmHeader;
     private IAudioOut? _audioOut;
 
@@ -20,7 +20,7 @@ public class ScreamOutput : IPcmOutput
         _audioDevice = _provider.GetDefaultAudioOutputDevice();
     }
 
-    public AudioDevice Device
+    public AudioDevice? Device
     {
         get
         {
@@ -51,7 +51,7 @@ public class ScreamOutput : IPcmOutput
     
     private void EnsureAudioOutInitialized()
     {
-        if (_pcmHeader == null)
+        if (_pcmHeader == null || _audioDevice == null)
         {
             return;
         }

@@ -6,7 +6,7 @@ namespace ScreamReaderCore.Contract;
 
 public interface IPcmOutput : IDisposable
 {
-    AudioDevice Device { get; set; }
+    AudioDevice? Device { get; set; }
     
     Result Play(PcmMessage message);
 }

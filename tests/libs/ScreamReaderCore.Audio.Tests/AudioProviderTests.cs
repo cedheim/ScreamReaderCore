@@ -57,20 +57,20 @@ public class AudioProviderTests
 
         var startVolume = audioOut.Volume;
         
-        audioOut.Volume = 50;
-        audioOut.Volume.ShouldBe(50);
+        audioOut.Volume = 0.5f;
+        audioOut.Volume.ShouldBe(0.5f, tolerance: 0.1);
         
-        audioOut.Volume = 150; // Invalid volume, should be ignored
-        audioOut.Volume.ShouldBe(50);
+        audioOut.Volume = 1.5f; // Invalid volume, should be ignored
+        audioOut.Volume.ShouldBe(0.5f, tolerance: 0.1);
         
-        audioOut.Volume = -10; // Invalid volume, should be ignored
-        audioOut.Volume.ShouldBe(50);
+        audioOut.Volume = -1.0f; // Invalid volume, should be ignored
+        audioOut.Volume.ShouldBe(0.5f, tolerance: 0.1);
         
-        audioOut.Volume = 0;
-        audioOut.Volume.ShouldBe(0);
+        audioOut.Volume = 0.0f;
+        audioOut.Volume.ShouldBe(0.0f, tolerance: 0.1);
         
-        audioOut.Volume = 100;
-        audioOut.Volume.ShouldBe(100);
+        audioOut.Volume = 1.0f;
+        audioOut.Volume.ShouldBe(1.0f, tolerance: 0.1);
         
         audioOut.Volume = startVolume;
     }

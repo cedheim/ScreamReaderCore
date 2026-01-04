@@ -9,15 +9,12 @@ namespace ScreamReaderCore.Lib;
 public class ScreamReceiver : IPcmReceiver
 {
     private readonly INetworkProvider _networkProvider;
-    private bool _disposed;
     private INetworkSocket? _socket;
-    private readonly CriticalSection _section = new CriticalSection();
-    private readonly CancellationTokenSource _cancellationTokenSource;
+    private readonly CriticalSection _section = new();
 
     public ScreamReceiver(INetworkProvider networkProvider)
     {
         _networkProvider = networkProvider;
-        _cancellationTokenSource = new CancellationTokenSource();
     }
     
     public Result Open(PcmReceiverSettings settings)
