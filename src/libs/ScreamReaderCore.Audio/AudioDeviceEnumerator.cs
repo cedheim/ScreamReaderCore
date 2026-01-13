@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi.Interfaces;
 
 namespace ScreamReaderCore.Audio;
 
@@ -12,6 +13,7 @@ public interface IAudioDeviceEnumerator : IDisposable
     IEnumerable<AudioDevice> EnumerateAudioEndPoints();
     bool HasDefaultAudioEndpoint();
     AudioDevice? GetDevice(string id);
+    event OnDefaultAudioDeviceChangedHandler OnDefaultDeviceChanged;
 }
 
 /// <summary>
@@ -21,12 +23,19 @@ public interface IAudioDeviceEnumerator : IDisposable
 [ExcludeFromCodeCoverage]
 public class AudioDeviceEnumerator : IAudioDeviceEnumerator
 {
+    private const DataFlow DefaultDataFlow = DataFlow.Render;
+    private const Role DefaultRole = Role.Multimedia;
+    
     private readonly MMDeviceEnumerator _deviceEnumerator;
 
     public AudioDeviceEnumerator()
     {
         _deviceEnumerator = new MMDeviceEnumerator();
+        _deviceEnumerator.RegisterEndpointNotificationCallback(new AudioDeviceNotificationClient(this));
     }
+
+
+    public event OnDefaultAudioDeviceChangedHandler? OnDefaultDeviceChanged;
     
     /// <summary>
     /// Gets the default audio endpoint.
@@ -34,7 +43,7 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
     /// <returns>The default audio device, null if none exists.</returns>
     public AudioDevice? GetDefaultAudioEndpoint()
     {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DefaultDataFlow, DefaultRole);
         if (defaultDevice == null)
         {
             return null;
@@ -53,8 +62,8 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
     /// <returns>Enumeration of audio devices.</returns>
     public IEnumerable<AudioDevice> EnumerateAudioEndPoints()
     {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        var devices = _deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint(DefaultDataFlow, DefaultRole);
+        var devices = _deviceEnumerator.EnumerateAudioEndPoints(DefaultDataFlow, DeviceState.Active);
 
         foreach (var device in devices)
         {
@@ -72,7 +81,7 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
     /// <returns>True if default audio endpoint exists</returns>
     public bool HasDefaultAudioEndpoint()
     {
-        return _deviceEnumerator.HasDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        return _deviceEnumerator.HasDefaultAudioEndpoint(DefaultDataFlow, DefaultRole);
     }
 
     /// <summary>
@@ -105,5 +114,47 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
     public void Dispose()
     {
         _deviceEnumerator.Dispose();
+    }
+
+    private class AudioDeviceNotificationClient : IMMNotificationClient
+    {
+        private readonly AudioDeviceEnumerator _enumerator;
+
+        public AudioDeviceNotificationClient(AudioDeviceEnumerator enumerator)
+        {
+            _enumerator = enumerator;
+        }
+        
+        public void OnDeviceStateChanged(string deviceId, DeviceState newState)
+        {
+        }
+
+        public void OnDeviceAdded(string pwstrDeviceId)
+        {
+        }
+
+        public void OnDeviceRemoved(string deviceId)
+        {
+        }
+
+        public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
+        {
+            if (flow != DefaultDataFlow || role != DefaultRole)
+            {
+                return;
+            }
+            
+            new Thread(() =>
+            {
+                Thread.Sleep(100);
+                var device = _enumerator.GetDevice(defaultDeviceId);
+                _enumerator.OnDefaultDeviceChanged?.Invoke(device);
+                
+            }).Start();
+        }
+
+        public void OnPropertyValueChanged(string pwstrDeviceId, PropertyKey key)
+        {
+        }
     }
 }

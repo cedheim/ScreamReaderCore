@@ -6,7 +6,7 @@ namespace ScreamReaderCore.Audio;
 /// <summary>
 /// Provides an interface for audio device management and output creation.
 /// </summary>
-public interface IAudioProvider : IDisposable
+public interface IAudioProvider
 {
     IEnumerable<AudioDevice> GetAudioOutputDevices();
     AudioDevice? GetDefaultAudioOutputDevice();
@@ -14,16 +14,12 @@ public interface IAudioProvider : IDisposable
     event OnDefaultAudioDeviceChangedHandler OnDefaultDeviceChanged;
 }
 
-public delegate void OnDefaultAudioDeviceChangedHandler(AudioDevice newDefaultDevice);
-
 /// <summary>
 /// Used for providing audio devices and output.
 /// </summary>
 public class AudioProvider : IAudioProvider
 {
     private readonly IAudioDeviceEnumerator _deviceEnumerator;
-    private readonly Thread _monitorThread;
-    private readonly CancellationTokenSource _cancellationTokenSource;
 
     /// <summary>
     /// Creates a new audio provider.
@@ -32,26 +28,22 @@ public class AudioProvider : IAudioProvider
     public AudioProvider(IAudioDeviceEnumerator deviceEnumerator)
     {
         _deviceEnumerator = deviceEnumerator;
-        _cancellationTokenSource = new CancellationTokenSource();
-        _monitorThread = new Thread(() => MonitorDefaultDeviceChanges(_cancellationTokenSource.Token).Wait());
-        _monitorThread.Start();
     }
-
-    /// <summary>
-    /// Interval for monitoring default device changes.
-    /// </summary>
-    public TimeSpan DeviceChangeMonitorInterval { get; set; } = TimeSpan.FromMilliseconds(100);
     
     /// <summary>
     /// Gets the default audio output device.
     /// </summary>
     /// <returns></returns>
     public AudioDevice? GetDefaultAudioOutputDevice() => _deviceEnumerator.GetDefaultAudioEndpoint();
-    
+
     /// <summary>
     /// Event raised when the default audio device changes.
     /// </summary>
-    public event OnDefaultAudioDeviceChangedHandler? OnDefaultDeviceChanged;
+    public event OnDefaultAudioDeviceChangedHandler? OnDefaultDeviceChanged 
+    { 
+        add => _deviceEnumerator.OnDefaultDeviceChanged += value; 
+        remove => _deviceEnumerator.OnDefaultDeviceChanged -= value; 
+    }
 
     /// <summary>
     /// Gets audio output devices.
@@ -70,48 +62,5 @@ public class AudioProvider : IAudioProvider
     public IAudioOut OpenOutput(AudioDevice device, int currentRate, int currentWidth, int currentChannels)
     {
         return new AudioOut(device, currentRate, currentWidth, currentChannels);
-    }
-
-    /// <summary>
-    /// Disposes the audio provider.
-    /// </summary>
-    public void Dispose()
-    {
-        _cancellationTokenSource.Cancel();
-        while (_monitorThread.IsAlive)
-        {
-            Thread.Sleep(10);
-        }
-    }
-
-    /// <summary>
-    /// Workaround for default device change notifications not working reliably in NAudio.
-    /// This method periodically checks the default device and raises an event if it changes.
-    /// </summary>
-    /// <param name="token">Cancellation token</param>
-    private async Task MonitorDefaultDeviceChanges(CancellationToken token)
-    {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
-        try
-        {
-
-            while (!token.IsCancellationRequested)
-            {
-                await Task.Delay(DeviceChangeMonitorInterval, token);
-                var currentDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
-
-                if (currentDevice == null || (defaultDevice != null && currentDevice.Id == defaultDevice.Id))
-                {
-                    continue;
-                }
-
-                defaultDevice = currentDevice;
-                OnDefaultDeviceChanged?.Invoke(defaultDevice);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when cancelling
-        }
     }
 }
