@@ -13,7 +13,6 @@ public class AudioProviderTests
     public void SetUp()
     {
         _deviceEnumerator = A.Fake<IAudioDeviceEnumerator>();
-        _sut = new AudioProvider(_deviceEnumerator);
         
         A.CallTo(() => _deviceEnumerator.EnumerateAudioEndPoints())
             .Returns([Data.SecondaryAudioDevice, Data.DefaultAudioDevice]);
@@ -21,6 +20,8 @@ public class AudioProviderTests
             .Returns(Data.DefaultAudioDevice);
         A.CallTo(() => _deviceEnumerator.HasDefaultAudioEndpoint())
             .Returns(true);
+
+        _sut = new AudioProvider(_deviceEnumerator);
     }
     
     [TearDown]
@@ -86,30 +87,68 @@ public class AudioProviderTests
     }
     
     [Test]
-    public async Task Should_monitor_default_device_changes()
+    public void Should_raise_event_when_default_device_changes()
     {
-        AudioDevice? defaultDevice = null;
-        var defaultDeviceChanges = 0;
-        _sut.OnDefaultDeviceChanged += (newDefaultDevice) =>
-        {
-            defaultDeviceChanges++;
-            defaultDevice = newDefaultDevice;
-        };
-        
-        
-        
+        var changes = new List<AudioDevice>();
+        _sut.OnDefaultDeviceChanged += changes.Add;
         A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
-            .ReturnsNextFromSequence(Data.DefaultAudioDevice, Data.AnotherDefaultAudioDevice);
-        
-        // Wait up to 5 seconds for the change to be detected
-        var timeout = DateTime.UtcNow.AddSeconds(5);
-        while (defaultDeviceChanges == 0 && DateTime.UtcNow < timeout)
-        {
-            await Task.Delay(100);
-        }
-        
-        defaultDeviceChanges.ShouldBe(1);
-        defaultDevice.ShouldBe(Data.AnotherDefaultAudioDevice);
+            .Returns(Data.AnotherDefaultAudioDevice);
+
+        _deviceEnumerator.DefaultAudioEndpointChanged += Raise.WithEmpty();
+
+        changes.ShouldBe([Data.AnotherDefaultAudioDevice]);
+    }
+
+    [Test]
+    public void Should_not_raise_event_when_default_device_is_unchanged()
+    {
+        var changes = new List<AudioDevice>();
+        _sut.OnDefaultDeviceChanged += changes.Add;
+
+        _deviceEnumerator.DefaultAudioEndpointChanged += Raise.WithEmpty();
+
+        changes.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Should_raise_event_once_for_duplicate_notifications()
+    {
+        var changes = new List<AudioDevice>();
+        _sut.OnDefaultDeviceChanged += changes.Add;
+        A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
+            .Returns(Data.AnotherDefaultAudioDevice);
+
+        _deviceEnumerator.DefaultAudioEndpointChanged += Raise.WithEmpty();
+        _deviceEnumerator.DefaultAudioEndpointChanged += Raise.WithEmpty();
+
+        changes.ShouldBe([Data.AnotherDefaultAudioDevice]);
+    }
+
+    [Test]
+    public void Should_not_raise_event_when_no_default_device_exists()
+    {
+        var changes = new List<AudioDevice>();
+        _sut.OnDefaultDeviceChanged += changes.Add;
+        A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
+            .Returns(null);
+
+        _deviceEnumerator.DefaultAudioEndpointChanged += Raise.WithEmpty();
+
+        changes.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Should_not_raise_event_after_dispose()
+    {
+        var changes = new List<AudioDevice>();
+        _sut.OnDefaultDeviceChanged += changes.Add;
+        A.CallTo(() => _deviceEnumerator.GetDefaultAudioEndpoint())
+            .Returns(Data.AnotherDefaultAudioDevice);
+
+        _sut.Dispose();
+        _deviceEnumerator.DefaultAudioEndpointChanged += Raise.WithEmpty();
+
+        changes.ShouldBeEmpty();
     }
 
     private AudioDevice GetDefaultAudioOutputDevice()

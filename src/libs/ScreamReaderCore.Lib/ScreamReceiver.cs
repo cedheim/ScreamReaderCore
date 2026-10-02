@@ -75,15 +75,18 @@ public class ScreamReceiver : IPcmReceiver
     /// <returns></returns>
     public async Task<Result<PcmMessage>> ReceiveAsync(CancellationToken cancellationToken = default)
     {
-        var receiveResult = await _section.EnterAsync(async () =>
+        // Only hold the lock while reading the socket reference; holding it across the receive
+        // would block Close() until the next packet arrives.
+        var socketResult = _section.Enter(() => _socket == null
+            ? Result.Failure<INetworkSocket>("ScreamReceiver is not open.")
+            : Result.Success(_socket));
+
+        if (!socketResult.IsSuccess)
         {
-            if (_socket == null)
-            {
-                return Result.Failure<byte[]>("ScreamReceiver is not open.");
-            }
-            
-            return await _socket.ReceiveAsync(cancellationToken);
-        }, cancellationToken: cancellationToken);
+            return Result.Failure<PcmMessage>(socketResult.Error);
+        }
+
+        var receiveResult = await socketResult.Value.ReceiveAsync(cancellationToken);
 
         if (!receiveResult.IsSuccess)
         {

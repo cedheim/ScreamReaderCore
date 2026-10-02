@@ -38,9 +38,13 @@ public class ScreamOutput : IPcmOutput
         }
         set
         {
-            _audioDevice = value;
-            
-            EnsureAudioOutInitialized();
+            // Device changes arrive on a thread-pool thread; serialize with Play so the output
+            // is never disposed/recreated while a packet is being queued.
+            _section.Enter(() =>
+            {
+                _audioDevice = value;
+                EnsureAudioOutInitialized();
+            });
         }
     }
     
@@ -59,7 +63,7 @@ public class ScreamOutput : IPcmOutput
                 EnsureAudioOutInitialized();
             }
 
-            _audioOut?.Play(message.Data);
+            return _audioOut?.Play(message.Data) ?? Result.Failure("No audio output available.");
         });
     }
     
@@ -74,6 +78,7 @@ public class ScreamOutput : IPcmOutput
         }
         
         _audioOut?.Dispose();
+        _audioOut = null;
         _audioOut = _provider.OpenOutput(
             _audioDevice,
             _pcmHeader.CurrentRate,

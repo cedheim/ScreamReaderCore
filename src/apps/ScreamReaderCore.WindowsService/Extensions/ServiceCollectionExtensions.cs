@@ -11,17 +11,16 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddScreamReader(this IServiceCollection services)
     {
-        services.AddTransient<INetworkProvider, NetworkProvider>();
-        services.AddTransient<IAudioDeviceEnumerator, AudioDeviceEnumerator>();
-        services.AddTransient<IAudioProvider, AudioProvider>(sp => new AudioProvider(sp.GetRequiredService<IAudioDeviceEnumerator>())
-        {
-            DeviceChangeMonitorInterval = TimeSpan.FromSeconds(1)
-        });
+        // Singletons: one device enumerator/notification registration and one audio pipeline per process.
+        services.AddSingleton<INetworkProvider, NetworkProvider>();
+        services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceEnumerator>();
+        services.AddSingleton(AudioOutOptions.Default);
+        services.AddSingleton<IAudioProvider, AudioProvider>();
 
         services.AddSingleton(_ => new PcmReceiverSettings(4010, new IPAddress([239, 255, 77, 77]), false));
-        services.AddTransient<IPcmReceiver, ScreamReceiver>();
-        services.AddTransient<IPcmOutput, ScreamOutput>();
-        services.AddTransient<IScreamPlayer, ScreamPlayer>();
+        services.AddSingleton<IPcmReceiver, ScreamReceiver>();
+        services.AddSingleton<IPcmOutput, ScreamOutput>();
+        services.AddSingleton<IScreamPlayer, ScreamPlayer>();
         
         return services;
     }
