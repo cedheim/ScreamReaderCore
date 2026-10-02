@@ -22,25 +22,23 @@ public delegate void OnDefaultAudioDeviceChangedHandler(AudioDevice newDefaultDe
 public class AudioProvider : IAudioProvider
 {
     private readonly IAudioDeviceEnumerator _deviceEnumerator;
-    private readonly Thread _monitorThread;
-    private readonly CancellationTokenSource _cancellationTokenSource;
+    private readonly AudioOutOptions _options;
+    private readonly Lock _defaultDeviceLock = new();
+    private string? _defaultDeviceId;
+    private bool _disposed;
 
     /// <summary>
     /// Creates a new audio provider.
     /// </summary>
     /// <param name="deviceEnumerator"></param>
-    public AudioProvider(IAudioDeviceEnumerator deviceEnumerator)
+    /// <param name="options">Output buffering options, <see cref="AudioOutOptions.Default"/> if not specified.</param>
+    public AudioProvider(IAudioDeviceEnumerator deviceEnumerator, AudioOutOptions? options = null)
     {
         _deviceEnumerator = deviceEnumerator;
-        _cancellationTokenSource = new CancellationTokenSource();
-        _monitorThread = new Thread(() => MonitorDefaultDeviceChanges(_cancellationTokenSource.Token).Wait());
-        _monitorThread.Start();
+        _options = options ?? AudioOutOptions.Default;
+        _defaultDeviceId = _deviceEnumerator.GetDefaultAudioEndpoint()?.Id;
+        _deviceEnumerator.DefaultAudioEndpointChanged += HandleDefaultAudioEndpointChanged;
     }
-
-    /// <summary>
-    /// Interval for monitoring default device changes.
-    /// </summary>
-    public TimeSpan DeviceChangeMonitorInterval { get; set; } = TimeSpan.FromMilliseconds(100);
     
     /// <summary>
     /// Gets the default audio output device.
@@ -69,7 +67,7 @@ public class AudioProvider : IAudioProvider
     /// <returns></returns>
     public IAudioOut OpenOutput(AudioDevice device, int currentRate, int currentWidth, int currentChannels)
     {
-        return new AudioOut(device, currentRate, currentWidth, currentChannels);
+        return new AudioOut(device, currentRate, currentWidth, currentChannels, _options);
     }
 
     /// <summary>
@@ -77,41 +75,44 @@ public class AudioProvider : IAudioProvider
     /// </summary>
     public void Dispose()
     {
-        _cancellationTokenSource.Cancel();
-        while (_monitorThread.IsAlive)
+        _deviceEnumerator.DefaultAudioEndpointChanged -= HandleDefaultAudioEndpointChanged;
+        lock (_defaultDeviceLock)
         {
-            Thread.Sleep(10);
+            _disposed = true;
         }
     }
 
     /// <summary>
-    /// Workaround for default device change notifications not working reliably in NAudio.
-    /// This method periodically checks the default device and raises an event if it changes.
+    /// Re-queries the default device instead of trusting the notification payload, and serializes handling,
+    /// so out-of-order or duplicate notifications (Windows sends several per change) raise at most one event
+    /// and the last raised device is always the current default.
     /// </summary>
-    /// <param name="token">Cancellation token</param>
-    private async Task MonitorDefaultDeviceChanges(CancellationToken token)
+    private void HandleDefaultAudioEndpointChanged(object? sender, EventArgs e)
     {
-        var defaultDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
-        try
+        lock (_defaultDeviceLock)
         {
-
-            while (!token.IsCancellationRequested)
+            if (_disposed)
             {
-                await Task.Delay(DeviceChangeMonitorInterval, token);
-                var currentDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
-
-                if (currentDevice == null || (defaultDevice != null && currentDevice.Id == defaultDevice.Id))
-                {
-                    continue;
-                }
-
-                defaultDevice = currentDevice;
-                OnDefaultDeviceChanged?.Invoke(defaultDevice);
+                return;
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when cancelling
+
+            AudioDevice? currentDevice;
+            try
+            {
+                currentDevice = _deviceEnumerator.GetDefaultAudioEndpoint();
+            }
+            catch
+            {
+                return;
+            }
+
+            if (currentDevice == null || currentDevice.Id == _defaultDeviceId)
+            {
+                return;
+            }
+
+            _defaultDeviceId = currentDevice.Id;
+            OnDefaultDeviceChanged?.Invoke(currentDevice);
         }
     }
 }

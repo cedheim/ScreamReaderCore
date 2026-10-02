@@ -12,7 +12,6 @@ internal class UdpSocket : INetworkSocket
 {
     private readonly NetworkProvider _provider;
     private readonly UdpClient _udpClient;
-    private readonly CriticalSection _section;
 
     /// <summary>
     /// Initializes a new instance of the UdpSocket class.
@@ -33,29 +32,25 @@ internal class UdpSocket : INetworkSocket
         {
             _udpClient.JoinMulticastGroup(multicastAddress);
         }
-        
-        this._section = new CriticalSection();
     }
 
     /// <summary>
     /// Receives data asynchronously from the UDP socket.
+    /// A pending receive completes with a failure when the socket is disposed.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A result containing the received byte array or an error.</returns>
     public async Task<Result<byte[]>> ReceiveAsync(CancellationToken cancellationToken = default)
     {
-        return await _section.EnterAsync(async () =>
+        try
         {
-            try
-            {
-                var result = await _udpClient.ReceiveAsync(cancellationToken);
-                return Result.Success(result.Buffer);
-            }
-            catch (Exception e)
-            {
-                return Result.Failure<byte[]>(e);
-            }
-        }, cancellationToken: cancellationToken);
+            var result = await _udpClient.ReceiveAsync(cancellationToken);
+            return Result.Success(result.Buffer);
+        }
+        catch (Exception e)
+        {
+            return Result.Failure<byte[]>(e);
+        }
     }
 
     /// <summary>
@@ -63,16 +58,6 @@ internal class UdpSocket : INetworkSocket
     /// </summary>
     public void Dispose()
     {
-        var result = _section.Enter(() =>
-        {
-            _udpClient?.Dispose();
-        });
-
-        if (!result.IsSuccess)
-        {
-            throw new InvalidOperationException($"Failed to dispose UdpSocket with message: {result.Error}");
-        }
-        
-        _section.Dispose();
+        _udpClient.Dispose();
     }
 }

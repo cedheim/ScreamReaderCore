@@ -105,4 +105,24 @@ public class ScreamReceiverTests
         result.Value.ShouldNotBeNull();
         result.Value.RawData.ShouldBe(data);
     }
+
+    [Test]
+    public async Task Should_close_while_receive_is_pending()
+    {
+        var pendingReceive = new TaskCompletionSource<Result<byte[]>>();
+        A.CallTo(() => _provider.Open(SocketType.Udp, _settings.Port, null))
+            .Returns(Result.Success(_socket));
+        A.CallTo(() => _socket.ReceiveAsync(A<CancellationToken>._))
+            .Returns(pendingReceive.Task);
+        A.CallTo(() => _socket.Dispose())
+            .Invokes(() => pendingReceive.TrySetResult(Result.Failure<byte[]>("disposed")));
+        _sut.Open(_settings);
+        var receiveTask = _sut.ReceiveAsync();
+
+        var closeResult = _sut.Close();
+
+        closeResult.IsSuccess.ShouldBeTrue();
+        A.CallTo(() => _socket.Dispose()).MustHaveHappened();
+        (await receiveTask).IsSuccess.ShouldBeFalse();
+    }
 }

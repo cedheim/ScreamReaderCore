@@ -91,11 +91,24 @@ public sealed class CriticalSection : IDisposable
     /// <returns>A result containing the outcome of the action.</returns>
     public Result Enter(Func<Result> action, TimeSpan? timeToWaitFor = null)
     {
-        return EnterAsync(() =>
+        var lockFailure = WaitForLock(timeToWaitFor);
+        if (lockFailure != null)
         {
-            var result = action();
-            return Task.FromResult(result);
-        }, timeToWaitFor).GetAwaiter().GetResult();
+            return lockFailure;
+        }
+
+        try
+        {
+            return action();
+        }
+        catch (Exception exception)
+        {
+            return Result.Failure(exception);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
     /// <summary>
     /// Enters the critical section and executes the specified action.
@@ -105,11 +118,11 @@ public sealed class CriticalSection : IDisposable
     /// <returns>A result containing the outcome of the action.</returns>
     public Result Enter(Action action, TimeSpan? timeToWaitFor = null)
     {
-        return EnterAsync(() =>
+        return Enter(() =>
         {
             action();
-            return Task.FromResult(Result.Success());
-        }, timeToWaitFor).GetAwaiter().GetResult();
+            return Result.Success();
+        }, timeToWaitFor);
     }
     /// <summary>
     /// Enters the critical section and executes the specified function returning a result.
@@ -120,11 +133,24 @@ public sealed class CriticalSection : IDisposable
     /// <returns>A result containing the outcome of the action.</returns>
     public Result<TResult> Enter<TResult>(Func<Result<TResult>> action, TimeSpan? timeToWaitFor = null)
     {
-        return EnterAsync<TResult>(() =>
+        var lockFailure = WaitForLock(timeToWaitFor);
+        if (lockFailure != null)
         {
-            var result = action();
-            return Task.FromResult(result);
-        }, timeToWaitFor).GetAwaiter().GetResult();
+            return Result.Failure<TResult>(lockFailure.Error);
+        }
+
+        try
+        {
+            return action();
+        }
+        catch (Exception exception)
+        {
+            return Result.Failure<TResult>(exception);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
     /// <summary>
     /// Disposes the critical section and releases resources.
@@ -132,5 +158,23 @@ public sealed class CriticalSection : IDisposable
     public void Dispose()
     {
         _lock.Dispose();
+    }
+
+    /// <summary>
+    /// Waits synchronously for the lock.
+    /// </summary>
+    /// <returns>null if the lock was taken, otherwise the failure.</returns>
+    private Result? WaitForLock(TimeSpan? timeToWaitFor)
+    {
+        try
+        {
+            return _lock.Wait(timeToWaitFor ?? _defaultTimeToWaitForLock)
+                ? null
+                : Result.Failure("Unable to enter critical section.");
+        }
+        catch (Exception exception)
+        {
+            return Result.Failure(exception);
+        }
     }
 }

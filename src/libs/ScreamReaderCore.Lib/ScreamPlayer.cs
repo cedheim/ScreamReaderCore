@@ -42,7 +42,7 @@ public class ScreamPlayer : IScreamPlayer
         set => _output.Device = value;
     }
     
-    public bool IsPlaying => _playTask?.IsCompleted ?? false;
+    public bool IsPlaying => _playTask is { IsCompleted: false };
     
     public PcmReceiverSettings Settings 
     {
@@ -112,7 +112,7 @@ public class ScreamPlayer : IScreamPlayer
                 var message = await _receiver.ReceiveAsync(cancellationToken);
                 if (!message.IsSuccess)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(100, cancellationToken);
                     continue;
                 }
 

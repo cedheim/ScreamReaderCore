@@ -13,4 +13,8 @@
     <ItemGroup>
       <ProjectReference Include="..\ScreamReaderCore.Tools\ScreamReaderCore.Tools.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="ScreamReaderCore.Audio.Tests" />
+    </ItemGroup>
 </Project>
